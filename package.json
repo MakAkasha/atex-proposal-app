@@ -1,0 +1,33 @@
+{
+  "name": "atex-proposal-app",
+  "version": "1.0.0",
+  "description": "ATEX Proposal Generator - Professional Proposal Management System for Smart Home & Building Systems",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "prod": "NODE_ENV=production node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "pm2:start": "pm2 start server.js --name atex-app -- --production",
+    "pm2:restart": "pm2 restart atex-app",
+    "pm2:stop": "pm2 stop atex-app",
+    "pm2:logs": "pm2 logs atex-app",
+    "pm2:status": "pm2 status"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "sql.js": "^1.10.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "atex",
+    "proposal",
+    "generator",
+    "saudi"
+  ],
+  "author": "ATEX",
+  "license": "MIT"
+}

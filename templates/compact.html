@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>عرض سعر - {{proposal_number}}</title>
+    <style>
+        @page { size: A4; margin: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
+            font-size: 11px;
+            line-height: 1.5;
+            color: #333;
+            background: #fff;
+        }
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 15mm;
+            margin: 0 auto;
+            background: #fff;
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #FF6B00;
+            margin-bottom: 15px;
+        }
+        .logo {
+            max-width: 120px;
+            max-height: 50px;
+            margin-bottom: 8px;
+        }
+        .proposal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #FF6B00;
+        }
+        .proposal-number {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            gap: 20px;
+        }
+        .info-box {
+            flex: 1;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .info-box h4 {
+            font-size: 11px;
+            color: #FF6B00;
+            margin-bottom: 5px;
+        }
+        .info-box p {
+            font-size: 10px;
+            color: #666;
+            margin: 2px 0;
+        }
+        .info-box strong {
+            color: #333;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 10px;
+        }
+        .items-table th {
+            background: #FF6B00;
+            color: #fff;
+            padding: 8px 6px;
+            text-align: right;
+            font-weight: 600;
+        }
+        .items-table td {
+            padding: 8px 6px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .items-table tr:nth-child(even) {
+            background: #fafafa;
+        }
+        .item-name {
+            font-weight: 600;
+            font-size: 10px;
+        }
+        .item-sku {
+            font-size: 9px;
+            color: #FF6B00;
+        }
+        .totals-row {
+            display: flex;
+            justify-content: flex-end;
+        }
+        .totals-box {
+            width: 220px;
+        }
+        .total-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 10px;
+        }
+        .total-line.final {
+            background: #FF6B00;
+            color: #fff;
+            font-weight: 700;
+            font-size: 12px;
+            padding: 8px;
+            margin-top: 5px;
+            border-radius: 5px;
+        }
+        .footer {
+            position: absolute;
+            bottom: 15mm;
+            left: 15mm;
+            right: 15mm;
+            text-align: center;
+            padding-top: 10px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 9px;
+            color: #999;
+        }
+        .valid-badge {
+            display: inline-block;
+            background: #fff7ed;
+            color: #FF6B00;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 9px;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+        @media print {
+            body { -webkit-print-color-adjust: exact; }
+            .page { padding: 10mm; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- Header -->
+        <div class="header">
+            <img src="../public/ATEX-logo.svg" alt="ATEX Logo" class="logo">
+            <div class="proposal-title">عرض سعر</div>
+            <div class="proposal-number">{{proposal_number}} | {{date}}</div>
+        </div>
+        
+        <!-- Info Row -->
+        <div class="info-row">
+            <div class="info-box">
+                <h4>من</h4>
+                <p><strong>ATEX - خبراء التقنية المتقدمة</strong></p>
+                <p>الرياض - المملكة العربية السعودية</p>
+                <p>تلفون: +966-XX-XXX-XXXX</p>
+            </div>
+            <div class="info-box">
+                <h4>إلى</h4>
+                {{#if customer}}
+                <p><strong>{{customer.name}}</strong></p>
+                {{#if customer.company}}<p>{{customer.company}}</p>{{/if}}
+                {{#if customer.email}}<p>{{customer.email}}</p>{{/if}}
+                {{#if customer.phone}}<p>{{customer.phone}}</p>{{/if}}
+                {{/if}}
+            </div>
+        </div>
+        
+        <!-- Items Table -->
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>المنتج</th>
+                    <th style="width: 50px; text-align: center;">الكمية</th>
+                    <th style="width: 80px; text-align: left;">سعر الوحدة</th>
+                    <th style="width: 80px; text-align: left;">الإجمالي</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each items}}
+                <tr>
+                    <td>{{@index}}</td>
+                    <td>
+                        <div class="item-name">{{name}}</div>
+                        <div class="item-sku">{{sku}}</div>
+                    </td>
+                    <td style="text-align: center;">{{quantity}}</td>
+                    <td style="text-align: left;">{{formatCurrency unit_price}}</td>
+                    <td style="text-align: left;">{{formatCurrency total}}</td>
+                </tr>
+                {{/each}}
+            </tbody>
+        </table>
+        
+        <!-- Totals -->
+        <div class="totals-row">
+            <div class="totals-box">
+                <div class="total-line">
+                    <span>المجموع</span>
+                    <span>{{formatCurrency subtotal}}</span>
+                </div>
+                {{#if discount_amount}}
+                <div class="total-line" style="color: #22c55e;">
+                    <span>الخصم ({{discount_percent}}%)</span>
+                    <span>- {{formatCurrency discount_amount}}</span>
+                </div>
+                {{/if}}
+                {{#if tax_amount}}
+                <div class="total-line">
+                    <span>الضريبة ({{tax_percent}}%)</span>
+                    <span>{{formatCurrency tax_amount}}</span>
+                </div>
+                {{/if}}
+                <div class="total-line final">
+                    <span>الإجمالي</span>
+                    <span>{{formatCurrency total}}</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p>شكراً لتعاملكم مع ATEX</p>
+            <div class="valid-badge">صالح حتى: {{valid_until}}</div>
+        </div>
+    </div>
+</body>
+</html>

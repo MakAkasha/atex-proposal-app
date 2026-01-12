@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>عرض سعر تفصيلي - {{proposal_number}}</title>
+    <style>
+        @page { size: A4; margin: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
+            font-size: 11px;
+            line-height: 1.7;
+            color: #333;
+            background: #fff;
+        }
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 18mm;
+            margin: 0 auto;
+            background: #fff;
+        }
+        
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #FF6B00;
+            margin-bottom: 18px;
+        }
+        .brand-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .logo {
+            max-width: 100px;
+            max-height: 45px;
+        }
+        .brand-text {
+            border-right: 3px solid #FF6B00;
+            padding-right: 12px;
+        }
+        .brand-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #FF6B00;
+        }
+        .brand-tagline {
+            font-size: 10px;
+            color: #666;
+        }
+        .doc-info {
+            text-align: left;
+        }
+        .doc-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #333;
+        }
+        .doc-meta {
+            font-size: 10px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        /* Sections */
+        .section {
+            margin-bottom: 15px;
+        }
+        .section-header {
+            font-size: 13px;
+            font-weight: 700;
+            color: #FF6B00;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 10px;
+        }
+        
+        /* Customer Grid */
+        .customer-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .customer-card {
+            background: #fafafa;
+            padding: 12px;
+            border-radius: 5px;
+            border-right: 3px solid #ddd;
+        }
+        .customer-card.highlight {
+            background: #fff7ed;
+            border-right-color: #FF6B00;
+        }
+        .customer-label {
+            font-size: 9px;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .customer-value {
+            font-size: 12px;
+            font-weight: 600;
+            color: #333;
+        }
+        .customer-sub {
+            font-size: 10px;
+            color: #666;
+        }
+        
+        /* Items Table */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .items-table th {
+            background: #FF6B00;
+            color: #fff;
+            padding: 10px 8px;
+            text-align: right;
+            font-weight: 600;
+            font-size: 10px;
+        }
+        .items-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #e5e5e5;
+            vertical-align: top;
+        }
+        .items-table tr:nth-child(even) {
+            background: #fcfcfc;
+        }
+        .item-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .item-image {
+            width: 45px;
+            height: 45px;
+            object-fit: contain;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+        .item-info {
+            flex: 1;
+        }
+        .item-name {
+            font-weight: 600;
+            color: #333;
+        }
+        .item-sku {
+            font-size: 9px;
+            color: #FF6B00;
+        }
+        .item-desc {
+            font-size: 9px;
+            color: #888;
+            margin-top: 2px;
+        }
+        
+        /* Specifications Box */
+        .specs-box {
+            background: #f5f5f5;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 5px;
+            font-size: 9px;
+        }
+        .specs-box strong {
+            color: #333;
+        }
+        
+        /* Totals */
+        .totals-wrapper {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 15px;
+        }
+        .totals-table {
+            width: 300px;
+            border-collapse: collapse;
+        }
+        .totals-table tr {
+            border-bottom: 1px solid #e5e5e5;
+        }
+        .totals-table td {
+            padding: 8px 10px;
+            font-size: 11px;
+        }
+        .totals-table td:last-child {
+            text-align: left;
+            font-weight: 600;
+        }
+        .totals-table .total-row {
+            background: #FF6B00;
+            color: #fff;
+        }
+        .totals-table .total-row td {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            padding: 12px 10px;
+        }
+        
+        /* Notes */
+        .notes-box {
+            background: #fff9e6;
+            padding: 12px;
+            border-radius: 5px;
+            border-right: 3px solid #ffc107;
+            font-size: 10px;
+        }
+        .notes-box strong {
+            color: #333;
+        }
+        
+        /* Terms */
+        .terms-box {
+            background: #f0f7ff;
+            padding: 12px;
+            border-radius: 5px;
+            font-size: 9px;
+        }
+        .terms-box h4 {
+            font-size: 11px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .terms-box ul {
+            margin: 0;
+            padding-right: 15px;
+        }
+        .terms-box li {
+            margin-bottom: 4px;
+            color: #555;
+        }
+        
+        /* Footer */
+        .footer {
+            margin-top: 20px;
+            padding-top: 12px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .company-footer {
+            font-size: 9px;
+            color: #999;
+            text-align: center;
+        }
+        .company-footer p {
+            margin: 2px 0;
+        }
+        .valid-box {
+            background: #FF6B00;
+            color: #fff;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        /* Page Break */
+        .page-break {
+            page-break-before: always;
+        }
+        
+        @media print {
+            body { -webkit-print-color-adjust: exact; }
+            .page { margin: 0; padding: 15mm; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- Header -->
+        <div class="header">
+            <div class="brand-section">
+                <img src="../public/ATEX-logo.svg" alt="ATEX Logo" class="logo">
+                <div class="brand-text">
+                    <div class="brand-name">ATEX</div>
+                    <div class="brand-tagline">خبراء التقنية المتقدمة</div>
+                </div>
+            </div>
+            <div class="doc-info">
+                <div class="doc-title">عرض سعر تفصيلي</div>
+                <div class="doc-meta">
+                    <p>رقم العرض: <strong>{{proposal_number}}</strong></p>
+                    <p>التاريخ: {{date}} | صلاحية: {{valid_days}} يوم</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Customer Info -->
+        {{#if customer}}
+        <div class="section">
+            <div class="customer-grid">
+                <div class="customer-card highlight">
+                    <div class="customer-label">العميل</div>
+                    <div class="customer-value">{{customer.name}}</div>
+                    {{#if customer.company}}
+                    <div class="customer-sub">{{customer.company}}</div>
+                    {{/if}}
+                </div>
+                <div class="customer-card">
+                    <div class="customer-label">معلومات الاتصال</div>
+                    <div class="customer-sub">
+                        {{#if customer.email}}{{customer.email}}<br>{{/if}}
+                        {{#if customer.phone}}{{customer.phone}}{{/if}}
+                    </div>
+                </div>
+                <div class="customer-card">
+                    <div class="customer-label">العنوان</div>
+                    <div class="customer-sub">
+                        {{#if customer.address}}{{customer.address}}{{else}}-{{/if}}
+                    </div>
+                </div>
+                <div class="customer-card">
+                    <div class="customer-label">الرقم الضريبي</div>
+                    <div class="customer-sub">
+                        {{#if customer.tax}}{{customer.tax}}{{else}}غير متوفر{{/if}}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{/if}}
+        
+        <!-- Items -->
+        <div class="section">
+            <div class="section-header">تفاصيل المنتجات والخدمات</div>
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">#</th>
+                        <th>المنتج</th>
+                        <th style="width: 50px; text-align: center;">الكمية</th>
+                        <th style="width: 90px; text-align: left;">سعر الوحدة</th>
+                        <th style="width: 90px; text-align: left;">الخصم</th>
+                        <th style="width: 100px; text-align: left;">الإجمالي</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each items}}
+                    <tr>
+                        <td>{{@index}}</td>
+                        <td>
+                            <div class="item-header">
+                                {{#if image}}
+                                <img src="{{image}}" class="item-image" alt="{{name}}">
+                                {{/if}}
+                                <div class="item-info">
+                                    <div class="item-name">{{name}}</div>
+                                    <div class="item-sku">SKU: {{sku}}</div>
+                                    {{#if description}}
+                                    <div class="item-desc">{{description}}</div>
+                                    {{/if}}
+                                    <div class="specs-box">
+                                        <strong>الفئة:</strong> {{category}} | 
+                                        <strong>الوحدة:</strong> {{unit}}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="text-align: center;">{{quantity}}</td>
+                        <td style="text-align: left;">{{formatCurrency unit_price}}</td>
+                        <td style="text-align: left;">-</td>
+                        <td style="text-align: left; font-weight: 600;">{{formatCurrency total}}</td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Totals -->
+        <div class="totals-wrapper">
+            <table class="totals-table">
+                <tr>
+                    <td>المجموع الفرعي</td>
+                    <td>{{formatCurrency subtotal}}</td>
+                </tr>
+                {{#if discount_amount}}
+                <tr style="color: #22c55e;">
+                    <td>الخصم ({{discount_percent}}%)</td>
+                    <td>- {{formatCurrency discount_amount}}</td>
+                </tr>
+                {{/if}}
+                <tr>
+                    <td>الضريبة ({{tax_percent}}%)</td>
+                    <td>{{formatCurrency tax_amount}}</td>
+                </tr>
+                <tr class="total-row">
+                    <td>الإجمالي النهائي</td>
+                    <td>{{formatCurrency total}}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Notes -->
+        {{#if notes}}
+        <div class="section">
+            <div class="section-header">ملاحظات</div>
+            <div class="notes-box">{{{notes}}}</div>
+        </div>
+        {{/if}}
+        
+        <!-- Terms -->
+        {{#if terms}}
+        <div class="section">
+            <div class="section-header">الشروط والأحكام</div>
+            <div class="terms-box">
+                <h4>شروط وأحكام العرض</h4>
+                <ul>
+                    {{{terms_list}}}
+                </ul>
+            </div>
+        </div>
+        {{/if}}
+        
+        <!-- Footer -->
+        <div class="footer">
+            <div class="company-footer">
+                <p>ATEX - خبراء التقنية المتقدمة</p>
+                <p>الرياض - المملكة العربية السعودية | تلفون: +966-XX-XXX-XXXX</p>
+                <p>البريد الإلكتروني: info@atex.sa | الموقع: www.atex.sa</p>
+            </div>
+            <div class="valid-box">صالح حتى: {{valid_until}}</div>
+        </div>
+    </div>
+</body>
+</html>
