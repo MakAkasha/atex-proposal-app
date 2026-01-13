@@ -803,7 +803,9 @@ const server = http.createServer(async (req, res) => {
                 'INSERT INTO customers (name, email, phone, company, address, tax_number, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
                 [data.name, data.email, data.phone, data.company, data.address, data.tax_number, data.notes, user.id]
             );
-            sendJSON(res, { success: true }, 201);
+            const customerId = db.exec("SELECT last_insert_rowid()")[0]?.values[0]?.[0];
+            const customer = queryOne('SELECT * FROM customers WHERE id = ?', [customerId]);
+            sendJSON(res, { success: true, customer }, 201);
             return;
         }
 

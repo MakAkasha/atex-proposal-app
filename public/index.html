@@ -1110,7 +1110,130 @@
             from { transform: translateX(-100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
-    </style>
+
+        /* ===== Customer Search Combobox ===== */
+        .customer-search-wrapper {
+            position: relative;
+        }
+
+        .customer-search-wrapper .form-input {
+            padding-left: 2.5rem;
+        }
+
+        .customer-search-wrapper .add-customer-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 5;
+        }
+
+        .customer-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            z-index: 100;
+            max-height: 280px;
+            overflow-y: auto;
+            display: none;
+            margin-top: 4px;
+        }
+
+        .customer-dropdown.active {
+            display: block;
+        }
+
+        .customer-dropdown-content {
+            padding: 0.5rem;
+        }
+
+        .customer-option {
+            display: flex;
+            flex-direction: column;
+            padding: 0.75rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .customer-option:hover {
+            background: var(--accent);
+        }
+
+        .customer-option.selected {
+            background: #fff7ed;
+            border: 1px solid var(--primary);
+        }
+
+        .customer-option-name {
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .customer-option-company {
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+            margin-top: 0.125rem;
+        }
+
+        .customer-option-contact {
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+            margin-top: 0.25rem;
+        }
+
+        .customer-search-icon {
+            position: absolute;
+            right: 2.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted-foreground);
+            width: 1rem;
+            height: 1rem;
+            z-index: 5;
+        }
+
+        /* ===== Quick Lead Modal (Smaller) ===== */
+        .modal.quick-lead-modal {
+            max-width: 400px;
+        }
+
+        .quick-lead-modal .modal-body {
+            padding: 1rem;
+        }
+
+        .quick-lead-modal .form-group {
+            margin-bottom: 0.75rem;
+        }
+
+        .quick-lead-modal .form-group:last-of-type {
+            margin-bottom: 0;
+        }
+
+        .quick-lead-modal .form-label {
+            font-size: 0.8125rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .quick-lead-modal .form-input {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .quick-lead-modal .modal-footer {
+            padding: 0.75rem 1rem;
+            gap: 0.5rem;
+        }
+
+        .quick-lead-modal .btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.8125rem;
+        }
 </head>
 <body>
     <!-- Login Page -->
@@ -1441,9 +1564,23 @@
                                     </div>
                                     <div class="form-group">
                                         <label class="form-label">العميل</label>
-                                        <select class="form-input" id="proposalCustomer">
-                                            <option value="">اختر عميلاً</option>
-                                        </select>
+                                        <div class="customer-search-wrapper">
+                                            <input type="text" class="form-input" id="customerSearchInput" placeholder="بحث عن عميل أو إضافة جديد..." autocomplete="off">
+                                            <button class="btn btn-primary btn-sm add-customer-btn" onclick="openQuickLeadModal()" title="إضافة عميل جديد">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                                </svg>
+                                            </button>
+                                            <div class="customer-dropdown" id="customerDropdown">
+                                                <div class="customer-dropdown-content" id="customerDropdownContent">
+                                                    <div class="empty-state" style="padding: 1rem;">
+                                                        <p class="text-muted text-center">ابدأ بالبحث عن عميل</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <input type="hidden" id="proposalCustomer" value="">
                                     </div>
                                 </div>
                                 <div class="form-row">
@@ -1955,6 +2092,38 @@
         </div>
     </div>
 
+    <!-- Quick Lead Modal (Smaller) -->
+    <div class="modal-overlay" id="quickLeadModal">
+        <div class="modal quick-lead-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">إضافة عميل جديد</h3>
+                <button class="modal-close" onclick="closeModal('quickLeadModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">الاسم *</label>
+                    <input type="text" class="form-input" id="quickLeadName" placeholder="اسم العميل">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">الشركة</label>
+                    <input type="text" class="form-input" id="quickLeadCompany" placeholder="اسم الشركة">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">البريد الإلكتروني</label>
+                    <input type="email" class="form-input" id="quickLeadEmail" placeholder="email@example.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">الهاتف</label>
+                    <input type="tel" class="form-input" id="quickLeadPhone" placeholder="05xxxxxxxx">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('quickLeadModal')">إلغاء</button>
+                <button class="btn btn-primary" onclick="saveQuickLead()">حفظ</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Product Modal -->
     <div class="modal-overlay" id="productModal">
         <div class="modal">
@@ -2173,6 +2342,206 @@
             if (pageName === 'create') {
                 loadProductsForCreate();
                 loadCustomersForSelect();
+                initCustomerSearch();
+            }
+        }
+
+        // ===== CUSTOMER SEARCH COMBOX =====
+        
+        function initCustomerSearch() {
+            const searchInput = document.getElementById('customerSearchInput');
+            const dropdown = document.getElementById('customerDropdown');
+            const dropdownContent = document.getElementById('customerDropdownContent');
+            const hiddenInput = document.getElementById('proposalCustomer');
+            
+            // Load customers for search
+            if (customers.length === 0) {
+                api('/customers').then(data => {
+                    customers = data;
+                    updateCustomerDropdown(customers, dropdownContent);
+                });
+            }
+            
+            // Search input handler
+            searchInput.addEventListener('input', async (e) => {
+                const query = e.target.value.toLowerCase().trim();
+                
+                if (query.length === 0) {
+                    // Show all customers when empty
+                    if (customers.length === 0) {
+                        await api('/customers').then(data => {
+                            customers = data;
+                        });
+                    }
+                    updateCustomerDropdown(customers, dropdownContent);
+                } else {
+                    // Filter customers
+                    if (customers.length === 0) {
+                        await api('/customers').then(data => {
+                            customers = data;
+                            filterAndShowCustomers(query, dropdownContent);
+                        });
+                    } else {
+                        filterAndShowCustomers(query, dropdownContent);
+                    }
+                }
+                
+                dropdown.classList.add('active');
+            });
+            
+            // Focus handler
+            searchInput.addEventListener('focus', async () => {
+                if (customers.length === 0) {
+                    await api('/customers').then(data => {
+                        customers = data;
+                    });
+                }
+                updateCustomerDropdown(customers, dropdownContent);
+                dropdown.classList.add('active');
+            });
+            
+            // Click outside to close
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.customer-search-wrapper')) {
+                    dropdown.classList.remove('active');
+                }
+            });
+            
+            // Keyboard navigation
+            searchInput.addEventListener('keydown', (e) => {
+                const options = dropdownContent.querySelectorAll('.customer-option');
+                const selected = dropdownContent.querySelector('.customer-option.selected');
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (!selected && options.length > 0) {
+                        options[0].classList.add('selected');
+                    } else if (selected) {
+                        const index = Array.from(options).indexOf(selected);
+                        if (index < options.length - 1) {
+                            selected.classList.remove('selected');
+                            options[index + 1].classList.add('selected');
+                        }
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (selected) {
+                        const index = Array.from(options).indexOf(selected);
+                        if (index > 0) {
+                            selected.classList.remove('selected');
+                            options[index - 1].classList.add('selected');
+                        }
+                    }
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (selected) {
+                        selectCustomer(selected.dataset.id);
+                    }
+                } else if (e.key === 'Escape') {
+                    dropdown.classList.remove('active');
+                }
+            });
+        }
+        
+        function filterAndShowCustomers(query, dropdownContent) {
+            const filtered = customers.filter(c => 
+                c.name.toLowerCase().includes(query) || 
+                (c.company && c.company.toLowerCase().includes(query)) ||
+                (c.phone && c.phone.includes(query)) ||
+                (c.email && c.email.toLowerCase().includes(query))
+            );
+            updateCustomerDropdown(filtered, dropdownContent);
+        }
+        
+        function updateCustomerDropdown(customerList, dropdownContent) {
+            if (customerList.length === 0) {
+                dropdownContent.innerHTML = `
+                    <div class="empty-state" style="padding: 1rem;">
+                        <p class="text-muted text-center">لا توجد نتائج</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            dropdownContent.innerHTML = customerList.map(c => `
+                <div class="customer-option" data-id="${c.id}" onclick="selectCustomer(${c.id})">
+                    <div class="customer-option-name">${c.name}</div>
+                    ${c.company ? `<div class="customer-option-company">${c.company}</div>` : ''}
+                    <div class="customer-option-contact">
+                        ${c.phone ? `<span>📞 ${c.phone}</span>` : ''}
+                        ${c.email ? `<span style="margin-right: 0.5rem;">✉️ ${c.email}</span>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function selectCustomer(customerId) {
+            const customer = customers.find(c => c.id == customerId);
+            if (!customer) return;
+            
+            const searchInput = document.getElementById('customerSearchInput');
+            const hiddenInput = document.getElementById('proposalCustomer');
+            const dropdown = document.getElementById('customerDropdown');
+            
+            // Update input and hidden field
+            searchInput.value = customer.name + (customer.company ? ` (${customer.company})` : '');
+            hiddenInput.value = customerId;
+            
+            // Close dropdown
+            dropdown.classList.remove('active');
+            
+            showNotification(`تم اختيار العميل: ${customer.name}`, 'success');
+        }
+        
+        // ===== QUICK LEAD MODAL =====
+        
+        function openQuickLeadModal() {
+            // Clear form
+            document.getElementById('quickLeadName').value = '';
+            document.getElementById('quickLeadCompany').value = '';
+            document.getElementById('quickLeadEmail').value = '';
+            document.getElementById('quickLeadPhone').value = '';
+            
+            // Focus on name input
+            setTimeout(() => {
+                document.getElementById('quickLeadName').focus();
+            }, 100);
+            
+            openModal('quickLeadModal');
+        }
+        
+        async function saveQuickLead() {
+            const name = document.getElementById('quickLeadName').value.trim();
+            
+            if (!name) {
+                showNotification('الاسم مطلوب', 'error');
+                return;
+            }
+            
+            const data = {
+                name: name,
+                company: document.getElementById('quickLeadCompany').value.trim(),
+                email: document.getElementById('quickLeadEmail').value.trim(),
+                phone: document.getElementById('quickLeadPhone').value.trim()
+            };
+            
+            try {
+                const result = await api('/customers', 'POST', data);
+                
+                if (result.success) {
+                    showNotification('تم إضافة العميل بنجاح', 'success');
+                    closeModal('quickLeadModal');
+                    
+                    // Refresh customers list
+                    customers = await api('/customers');
+                    
+                    // Select the newly created customer
+                    selectCustomer(result.customer.id);
+                } else {
+                    showNotification(result.error || 'حدث خطأ', 'error');
+                }
+            } catch (e) {
+                showNotification('حدث خطأ في الاتصال', 'error');
             }
         }
 
