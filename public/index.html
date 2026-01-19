@@ -3197,45 +3197,72 @@
                 return;
             }
             
+            // Get headers array from first row
+            const headers = Object.keys(sheetData[0]);
+            
             const colSku = parseInt(document.getElementById('colSku').value);
             const colName = parseInt(document.getElementById('colName').value);
             const colPrice = parseInt(document.getElementById('colPrice').value);
             const colCategory = parseInt(document.getElementById('colCategory').value);
             
-            const headers = Object.keys(sheetData[0]);
+            // Validate column indices
+            if (isNaN(colSku) || isNaN(colName) || colSku >= headers.length || colName >= headers.length) {
+                showNotification('يرجى اختيار أعمدة صحيحة', 'error');
+                return;
+            }
+            
+            // Get actual header names from indices
+            const skuHeader = headers[colSku];
+            const nameHeader = headers[colName];
+            const priceHeader = headers[colPrice];
+            const categoryHeader = headers[colCategory];
+            
+            if (!skuHeader || !nameHeader) {
+                showNotification('يرجى اختيار أعمدة SKU واسم المنتج', 'error');
+                return;
+            }
+            
             const importedProducts = [];
+            const failedProducts = [];
             
             for (const row of sheetData) {
-                const values = Object.values(row);
-                const sku = values[colSku];
-                const name = values[colName];
-                const price = parseFloat(values[colPrice]) || 0;
-                const category = values[colCategory] || '';
+                // Access data using header names instead of indices
+                const sku = row[skuHeader];
+                const name = row[nameHeader];
+                const price = priceHeader && row[priceHeader] ? parseFloat(row[priceHeader].replace(/[^\d.-]/g, '')) || 0 : 0;
+                const category = categoryHeader ? (row[categoryHeader] || '') : '';
                 
-                if (sku && name) {
-                    // Save product via API
+                if (sku && name && sku.trim() && name.trim()) {
                     try {
                         const result = await api('/products', 'POST', {
-                            sku: sku,
-                            name: name,
+                            sku: sku.trim(),
+                            name: name.trim(),
                             description: '',
                             price: price,
                             cost: price * 0.6, // Estimate cost at 60%
-                            category: category,
+                            category: category.trim(),
                             unit: 'قطعة'
                         });
                         
                         if (result.success) {
-                            importedProducts.push(sku);
+                            importedProducts.push(sku.trim());
+                        } else {
+                            failedProducts.push(`${sku}: ${result.error || 'Unknown error'}`);
                         }
                     } catch (e) {
-                        console.error('Import error:', e);
+                        console.error('Import error for', sku, ':', e);
+                        failedProducts.push(`${sku}: ${e.message || 'Network error'}`);
                     }
                 }
             }
             
             if (importedProducts.length > 0) {
-                showNotification(`تم استيراد ${importedProducts.length} منتج بنجاح`, 'success');
+                let message = `تم استيراد ${importedProducts.length} منتج بنجاح`;
+                if (failedProducts.length > 0) {
+                    message += ` (${failedProducts.length} فشل)`;
+                    console.error('Failed imports:', failedProducts);
+                }
+                showNotification(message, failedProducts.length > 0 ? 'warning' : 'success');
                 sheetData = [];
                 document.getElementById('sheetsPreview').innerHTML = '';
                 document.getElementById('importSheetsBtn').disabled = true;
