@@ -1752,8 +1752,9 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="actions">
+                                    <div class="actions" style="flex-wrap: wrap;">
                                         <button class="btn btn-primary" onclick="previewSheets()">معاينة البيانات</button>
+                                        <button class="btn btn-secondary" onclick="checkDuplicates()" id="checkDuplicatesBtn" disabled>التحقق من المنتجات المكررة</button>
                                         <button class="btn btn-primary" onclick="importFromSheets()" id="importSheetsBtn" disabled>استيراد المنتجات</button>
                                     </div>
                                     <div id="sheetsPreview" class="mt-4" style="max-height: 200px; overflow-y: auto;"></div>
@@ -2651,34 +2652,6 @@
             document.getElementById('productImageUrl').value = '';
         }
 
-        async function saveProduct() {
-            const data = {
-                sku: document.getElementById('productSku').value,
-                name: document.getElementById('productName').value,
-                description: document.getElementById('productDesc').value,
-                price: parseFloat(document.getElementById('productPrice').value) || 0,
-                cost: parseFloat(document.getElementById('productCost').value) || 0,
-                category: document.getElementById('productCategory').value,
-                unit: document.getElementById('productUnit').value,
-                image_url: document.getElementById('productImageUrl').value
-            };
-            
-            if (!data.sku || !data.name) {
-                showNotification('SKU والاسم مطلوبان', 'error');
-                return;
-            }
-            
-            const result = await api('/products', 'POST', data);
-            if (result.success) {
-                showNotification('تم حفظ المنتج بنجاح', 'success');
-                closeModal('productModal');
-                resetProductForm();
-                loadProducts();
-            } else {
-                showNotification(result.error, 'error');
-            }
-        }
-
         function resetProductForm() {
             document.getElementById('productSku').value = '';
             document.getElementById('productName').value = '';
@@ -3052,6 +3025,7 @@
 
         // Google Sheets Functions
         let sheetData = [];
+        let duplicateCheckResults = null;
         
         function extractSpreadsheetId(url) {
             // Handle different Google Sheets URL formats
@@ -3121,10 +3095,93 @@
                 
                 document.getElementById('sheetsPreview').innerHTML = previewHtml;
                 document.getElementById('importSheetsBtn').disabled = false;
+                document.getElementById('checkDuplicatesBtn').disabled = false;
+                duplicateCheckResults = null;
                 showNotification(`تم تحميل ${sheetData.length} منتج بنجاح`, 'success');
             } catch (error) {
                 console.error('Sheets error:', error);
                 showNotification('فشل في تحميل البيانات. تأكد من أن الجدول مشترك للرابط.', 'error');
+            }
+        }
+        
+        async function checkDuplicates() {
+            if (sheetData.length === 0) {
+                showNotification('يرجى معاينة البيانات أولاً', 'error');
+                return;
+            }
+            
+            // Get headers array from first row
+            const headers = Object.keys(sheetData[0]);
+            
+            const colSku = parseInt(document.getElementById('colSku').value);
+            const colName = parseInt(document.getElementById('colName').value);
+            
+            // Validate column indices
+            if (isNaN(colSku) || isNaN(colName) || colSku >= headers.length || colName >= headers.length) {
+                showNotification('يرجى اختيار أعمدة صحيحة', 'error');
+                return;
+            }
+            
+            // Get actual header names from indices
+            const skuHeader = headers[colSku];
+            const nameHeader = headers[colName];
+            
+            if (!skuHeader || !nameHeader) {
+                showNotification('يرجى اختيار أعمدة SKU واسم المنتج', 'error');
+                return;
+            }
+            
+            try {
+                showNotification('جاري التحقق من المنتجات المكررة...', 'info');
+                
+                // Extract SKUs from sheet data
+                const skus = sheetData.map(row => row[skuHeader]).filter(sku => sku && sku.trim());
+                
+                const response = await fetch(API_URL + '/products/check-duplicates', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + authToken
+                    },
+                    body: JSON.stringify({ skus })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    duplicateCheckResults = result;
+                    
+                    const duplicateHtml = `
+                        <div style="font-weight: 600; margin-bottom: 0.75rem; color: var(--primary);">
+                            ✅ تم التحقق: ${result.newCount} منتج جديد | 🔄 ${result.duplicatesCount} منتج سيتم تحديثه
+                        </div>
+                        ${result.duplicates.length > 0 ? `
+                            <div style="margin-bottom: 0.5rem; font-weight: 500;">المنتجات الموجودة (سيتم تحديثها):</div>
+                            <ul style="max-height: 150px; overflow-y: auto; padding-left: 1.5rem; font-size: 0.8125rem;">
+                                ${result.duplicates.map(d => `
+                                    <li style="margin-bottom: 0.25rem;">
+                                        <strong>${d.sku}</strong>: ${d.name} - ${formatCurrency(d.price)}
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        ` : ''}
+                        ${result.newSkus.length > 0 ? `
+                            <div style="margin-top: 0.75rem; margin-bottom: 0.5rem; font-weight: 500; color: var(--success);">المنتجات الجديدة:</div>
+                            <ul style="max-height: 150px; overflow-y: auto; padding-left: 1.5rem; font-size: 0.8125rem;">
+                                ${result.newSkus.slice(0, 10).map(sku => `<li style="margin-bottom: 0.25rem;">${sku}</li>`).join('')}
+                                ${result.newSkus.length > 10 ? `<li>...و ${result.newSkus.length - 10} منتج آخر</li>` : ''}
+                            </ul>
+                        ` : ''}
+                    `;
+                    
+                    document.getElementById('sheetsPreview').innerHTML = duplicateHtml;
+                    showNotification(`التحقق مكتمل: ${result.newCount} جديد، ${result.duplicatesCount} موجود`, result.duplicatesCount > 0 ? 'warning' : 'success');
+                } else {
+                    showNotification(result.error || 'فشل في التحقق', 'error');
+                }
+            } catch (e) {
+                console.error('Duplicate check error:', e);
+                showNotification('فشل في التحقق من المنتجات', 'error');
             }
         }
         
@@ -3222,53 +3279,84 @@
                 return;
             }
             
-            const importedProducts = [];
-            const failedProducts = [];
+            // Prepare products array for batch import
+            const productsToImport = [];
             
             for (const row of sheetData) {
-                // Access data using header names instead of indices
                 const sku = row[skuHeader];
                 const name = row[nameHeader];
                 const price = priceHeader && row[priceHeader] ? parseFloat(row[priceHeader].replace(/[^\d.-]/g, '')) || 0 : 0;
                 const category = categoryHeader ? (row[categoryHeader] || '') : '';
                 
                 if (sku && name && sku.trim() && name.trim()) {
-                    try {
-                        const result = await api('/products', 'POST', {
-                            sku: sku.trim(),
-                            name: name.trim(),
-                            description: '',
-                            price: price,
-                            cost: price * 0.6, // Estimate cost at 60%
-                            category: category.trim(),
-                            unit: 'قطعة'
-                        });
-                        
-                        if (result.success) {
-                            importedProducts.push(sku.trim());
-                        } else {
-                            failedProducts.push(`${sku}: ${result.error || 'Unknown error'}`);
-                        }
-                    } catch (e) {
-                        console.error('Import error for', sku, ':', e);
-                        failedProducts.push(`${sku}: ${e.message || 'Network error'}`);
-                    }
+                    productsToImport.push({
+                        sku: sku.trim(),
+                        name: name.trim(),
+                        description: '',
+                        price: price,
+                        cost: price * 0.6, // Estimate cost at 60%
+                        category: category.trim(),
+                        unit: 'قطعة'
+                    });
                 }
             }
             
-            if (importedProducts.length > 0) {
-                let message = `تم استيراد ${importedProducts.length} منتج بنجاح`;
-                if (failedProducts.length > 0) {
-                    message += ` (${failedProducts.length} فشل)`;
-                    console.error('Failed imports:', failedProducts);
+            if (productsToImport.length === 0) {
+                showNotification('لا توجد منتجات صالحة للاستيراد', 'error');
+                return;
+            }
+            
+            try {
+                showNotification(`جاري استيراد ${productsToImport.length} منتج...`, 'info');
+                
+                const response = await fetch(API_URL + '/products/sync', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + authToken
+                    },
+                    body: JSON.stringify({ products: productsToImport })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    let message = `✅ تمت العملية: ${result.created} منتج جديد | 🔄 ${result.updated} منتج محدث`;
+                    if (result.failed > 0) {
+                        message += ` | ❌ ${result.failed} فشل`;
+                    }
+                    
+                    // Show detailed results
+                    const resultHtml = `
+                        <div style="font-weight: 600; margin-bottom: 0.75rem; color: var(--primary); font-size: 1rem;">
+                            ${message}
+                        </div>
+                        <div style="font-size: 0.875rem; margin-bottom: 0.5rem;">الإجمالي: ${result.total} منتج</div>
+                        ${result.errors.length > 0 ? `
+                            <div style="margin-top: 0.75rem;">
+                                <div style="font-weight: 500; color: var(--destructive);">الأخطاء:</div>
+                                <ul style="max-height: 200px; overflow-y: auto; padding-left: 1.5rem; font-size: 0.8125rem;">
+                                    ${result.errors.map(e => `<li style="margin-bottom: 0.25rem;"><strong>${e.sku}:</strong> ${e.error}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        <button class="btn btn-primary mt-4" onclick="previewSheets()">تحديث المعاينة</button>
+                    `;
+                    
+                    document.getElementById('sheetsPreview').innerHTML = resultHtml;
+                    showNotification(message, result.failed > 0 ? 'warning' : 'success');
+                    
+                    // Refresh products list
+                    loadProducts();
+                    
+                    // Reset button state
+                    document.getElementById('importSheetsBtn').disabled = false;
+                } else {
+                    showNotification(result.error || 'فشل في الاستيراد', 'error');
                 }
-                showNotification(message, failedProducts.length > 0 ? 'warning' : 'success');
-                sheetData = [];
-                document.getElementById('sheetsPreview').innerHTML = '';
-                document.getElementById('importSheetsBtn').disabled = true;
-                loadProducts();
-            } else {
-                showNotification('لم يتم استيراد أي منتجات', 'error');
+            } catch (e) {
+                console.error('Import error:', e);
+                showNotification('حدث خطأ أثناء الاستيراد: ' + e.message, 'error');
             }
         }
 

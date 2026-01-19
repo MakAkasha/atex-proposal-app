@@ -286,33 +286,58 @@ function sendError(res, message, status = 400) {
 }
 
 function queryOne(sql, params = []) {
-    const stmt = db.prepare(sql);
-    stmt.bind(params);
-    if (stmt.step()) {
-        const row = stmt.getAsObject();
+    try {
+        const stmt = db.prepare(sql);
+        stmt.bind(params);
+        if (stmt.step()) {
+            const row = stmt.getAsObject();
+            stmt.free();
+            return row;
+        }
         stmt.free();
-        return row;
+        return null;
+    } catch (e) {
+        console.error('Database queryOne error:', e.message);
+        console.error('SQL:', sql);
+        console.error('Params:', params);
+        throw e;
     }
-    stmt.free();
-    return null;
 }
 
 function queryAll(sql, params = []) {
-    const stmt = db.prepare(sql);
-    stmt.bind(params);
-    const results = [];
-    while (stmt.step()) {
-        results.push(stmt.getAsObject());
+    try {
+        const stmt = db.prepare(sql);
+        stmt.bind(params);
+        const results = [];
+        while (stmt.step()) {
+            results.push(stmt.getAsObject());
+        }
+        stmt.free();
+        return results;
+    } catch (e) {
+        console.error('Database queryAll error:', e.message);
+        console.error('SQL:', sql);
+        console.error('Params:', params);
+        throw e;
     }
-    stmt.free();
-    return results;
 }
 
-function run(sql, params = []) {
-    db.run(sql, params);
-    saveDatabase();
-    return { lastInsertRowid: db.exec("SELECT last_insert_rowid()")[0]?.values[0]?.[0] };
-}
+  function run(sql, params = []) {
+    try {
+      db.run(sql, params);
+      saveDatabase();
+      const result = db.exec("SELECT last_insert_rowid()");
+      if (result.length > 0 && result[0].values.length > 0) {
+        return { lastInsertRowid: result[0].values[0][0] };
+      }
+      return { lastInsertRowid: null };
+    } catch (e) {
+      console.error('Database run error:', e.message);
+      console.error('SQL:', sql);
+      console.error('Params:', params);
+      throw e;
+    }
+  }
 
 function generateProposalNumber() {
     const date = new Date();
@@ -613,6 +638,130 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
+        // POST /api/products/sync - Batch sync (insert or update)
+        if (method === 'POST' && pathname === '/api/products/sync') {
+            const user = requireAuth(req, res);
+            if (!user) return;
+            const data = await parseBody(req);
+            
+            if (!data.products || !Array.isArray(data.products) || data.products.length === 0) {
+                sendError(res, 'Products array required', 400);
+                return;
+            }
+            
+            const results = {
+                created: 0,
+                updated: 0,
+                failed: 0,
+                errors: []
+            };
+            
+            for (const product of data.products) {
+                if (!product.sku || !product.name) {
+                    results.failed++;
+                    results.errors.push({
+                        sku: product.sku || 'unknown',
+                        error: 'SKU and name required'
+                    });
+                    continue;
+                }
+                
+                try {
+                    // Check if product exists
+                    const existing = queryOne('SELECT id FROM products WHERE sku = ?', [product.sku]);
+                    
+                    if (existing) {
+                        // Update existing product
+                        run(
+                            'UPDATE products SET name = ?, description = ?, price = ?, cost = ?, category = ?, unit = ?, image_url = ?, stock = ?, active = 1 WHERE sku = ?',
+                            [
+                                product.name,
+                                product.description || '',
+                                product.price || 0,
+                                product.cost || 0,
+                                product.category || '',
+                                product.unit || 'قطعة',
+                                product.image_url || '',
+                                product.stock || 0,
+                                product.sku
+                            ]
+                        );
+                        results.updated++;
+                    } else {
+                        // Insert new product
+                        run(
+                            'INSERT INTO products (sku, name, description, price, cost, category, unit, image_url, stock, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                            [
+                                product.sku,
+                                product.name,
+                                product.description || '',
+                                product.price || 0,
+                                product.cost || 0,
+                                product.category || '',
+                                product.unit || 'قطعة',
+                                product.image_url || '',
+                                product.stock || 0,
+                                user.id
+                            ]
+                        );
+                        results.created++;
+                    }
+                } catch (e) {
+                    results.failed++;
+                    results.errors.push({
+                        sku: product.sku,
+                        error: e.message || 'Unknown error'
+                    });
+                }
+            }
+            
+            sendJSON(res, {
+                success: true,
+                ...results,
+                total: data.products.length
+            });
+            return;
+        }
+
+        // POST /api/products/check-duplicates - Check which SKUs already exist
+        if (method === 'POST' && pathname === '/api/products/check-duplicates') {
+            const user = requireAuth(req, res);
+            if (!user) return;
+            const data = await parseBody(req);
+            
+            if (!data.skus || !Array.isArray(data.skus)) {
+                sendError(res, 'SKUs array required', 400);
+                return;
+            }
+            
+            const duplicates = [];
+            const newSkus = [];
+            
+            for (const sku of data.skus) {
+                if (!sku || !sku.trim()) continue;
+                const existing = queryOne('SELECT sku, name, price FROM products WHERE sku = ? AND active = 1', [sku.trim()]);
+                if (existing) {
+                    duplicates.push({
+                        sku: existing.sku,
+                        name: existing.name,
+                        price: existing.price
+                    });
+                } else {
+                    newSkus.push(sku.trim());
+                }
+            }
+            
+            sendJSON(res, {
+                success: true,
+                duplicates,
+                newSkus,
+                totalChecked: data.skus.length,
+                duplicatesCount: duplicates.length,
+                newCount: newSkus.length
+            });
+            return;
+        }
+
         // POST /api/products
         if (method === 'POST' && pathname === '/api/products') {
             const user = requireAuth(req, res);
@@ -629,7 +778,7 @@ const server = http.createServer(async (req, res) => {
                 );
                 sendJSON(res, { success: true }, 201);
             } catch (e) {
-                sendError(res, 'Product already exists', 409);
+                sendError(res, `Product with SKU "${data.sku}" already exists`, 409);
             }
             return;
         }
@@ -686,7 +835,16 @@ const server = http.createServer(async (req, res) => {
             }
             run(
                 'INSERT INTO customers (name, email, phone, company, address, tax_number, notes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                [data.name, data.email, data.phone, data.company, data.address, data.tax_number, data.notes, user.id]
+                [
+                    data.name,
+                    data.email || null,
+                    data.phone || null,
+                    data.company || null,
+                    data.address || null,
+                    data.tax_number || null,
+                    data.notes || null,
+                    user.id
+                ]
             );
             sendJSON(res, { success: true }, 201);
             return;
